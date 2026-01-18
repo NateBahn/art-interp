@@ -23,49 +23,33 @@ An interactive tool for exploring what vision models learn, using Sparse Autoenc
 git clone https://github.com/yourusername/art-interp.git
 cd art-interp
 
-# Install Python package with server dependencies
-pip install -e ".[server]"
+# Install Python package
+pip install -e .
 
 # Install web dependencies
 cd web && npm install && cd ..
 ```
 
-### 2. Add Your Artworks
+### 2. Set Up Supabase
+
+The web frontend connects directly to Supabase for data:
+
+1. Create a free project at [supabase.com](https://supabase.com)
+2. Run `database/schema.sql` in the Supabase SQL editor
+3. Configure the frontend:
 
 ```bash
-# Option A: From a folder of images
-python scripts/populate_database.py --images ./my_paintings/
-
-# Option B: From a CSV with metadata
-python scripts/populate_database.py --csv artworks.csv
+cp web/.env.example web/.env.local
+# Edit web/.env.local with your VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY
 ```
-
-This creates a local SQLite database and extracts SAE features from each image.
-
-<details>
-<summary>CSV format example</summary>
-
-```csv
-image_path,title,artist,year
-./images/starry_night.jpg,The Starry Night,Vincent van Gogh,1889
-./images/mona_lisa.jpg,Mona Lisa,Leonardo da Vinci,1503
-./images/guernica.jpg,Guernica,Pablo Picasso,1937
-```
-
-Only `image_path` is required. Other columns are optional.
-</details>
 
 ### 3. Run the Web Explorer
 
 ```bash
-# Start the API server
-uvicorn server.main:app --port 8001 &
-
-# Start the web frontend
 cd web && npm run dev
 ```
 
-Open http://localhost:5173 to explore your artworks!
+Open http://localhost:5173 to explore!
 
 ---
 
@@ -92,35 +76,24 @@ Image → CLIP → 768-dim activation → SAE → 49,152 sparse features
 
 ---
 
-## Configuration
+## Populating Your Database
 
-### Local SQLite (Default)
-
-No configuration needed! The database is created automatically at `./data/art_interp.db`.
-
-### Supabase (Production)
-
-For a hosted database with the web frontend connecting directly:
-
-1. Create a project at [supabase.com](https://supabase.com)
-2. Run `server/database/schema.sql` in the SQL editor
-3. Create config files:
+Use the scripts to analyze your own artwork collection:
 
 ```bash
-# Root .env (for Python server)
-cp .env.example .env
-# Edit with your DATABASE_URL
+# Extract SAE features from images and upload to Supabase
+python scripts/extract_sae_features.py --images ./my_paintings/
 
-# Web .env.local (for frontend)
-cp web/.env.example web/.env.local
-# Edit with your VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY
+# Compute monosemanticity scores
+python scripts/compute_monosemanticity.py
+
+# Generate labels with Gemini (requires GOOGLE_API_KEY in .env)
+python scripts/label_features_gemini.py
 ```
 
 ---
 
-## Advanced Usage
-
-### Python Library
+## Python Library
 
 Use the interpretability package directly in your code:
 
@@ -137,24 +110,6 @@ print(f"Active features: {result.num_active}")
 print(f"Top feature: #{result.top_indices[0]} = {result.top_values[0]:.2f}")
 ```
 
-### Analysis Pipeline
-
-For deeper analysis, use the scripts in `scripts/`:
-
-```bash
-# Compute monosemanticity scores (which features are interpretable?)
-python scripts/compute_monosemanticity.py
-
-# Correlate with ratings (requires rating data)
-python scripts/compute_spatial_correlations.py
-
-# Generate labels with Gemini (requires GOOGLE_API_KEY in .env)
-python scripts/label_features_gemini.py
-
-# Import labels to database
-python scripts/import_feature_labels_to_db.py
-```
-
 ### Multi-Layer Analysis
 
 Different CLIP layers capture different abstractions:
@@ -164,11 +119,6 @@ Different CLIP layers capture different abstractions:
 | 7 | Textures, patterns | "brushstroke texture", "geometric grid" |
 | 8 | Composition, shapes | "centered subject", "diagonal lines" |
 | 11 | Semantics, concepts | "portrait", "landscape", "abstract" |
-
-```bash
-# Extract features from layer 11 instead of default layer 8
-python scripts/populate_database.py --images ./art/ --layer 11
-```
 
 ---
 
@@ -180,16 +130,11 @@ art-interp/
 │   ├── core/                 # SAE feature extraction
 │   ├── analysis/             # Monosemanticity, correlations
 │   └── labeling/             # Gemini VLM integration
-├── server/                   # FastAPI server
-│   ├── main.py               # API endpoints
-│   └── database/             # SQLAlchemy models
-├── web/                      # React frontend
+├── web/                      # React frontend (connects to Supabase)
 │   └── src/
 ├── scripts/                  # Analysis pipelines
-│   ├── populate_database.py  # Main setup script
-│   ├── compute_monosemanticity.py
-│   └── label_features_gemini.py
-└── data/                     # Local data storage
+├── database/                 # SQL schema for Supabase
+└── data/                     # Sample heatmaps
 ```
 
 ---
@@ -198,6 +143,7 @@ art-interp/
 
 - Python 3.11+
 - Node.js 18+ (for web frontend)
+- Supabase account (free tier works)
 - ~2GB disk for SAE weights (downloaded on first use)
 - GPU recommended for feature extraction (works on CPU, but slower)
 

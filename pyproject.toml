@@ -41,19 +41,15 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-server = [
-    "fastapi>=0.109.0",
-    "uvicorn>=0.25.0",
-    "sqlalchemy>=2.0.0",
-    "pydantic>=2.0.0",
-    "psycopg2-binary>=2.9.0",
-    "python-dotenv>=1.0.0",
-]
 labeling = [
     "google-generativeai>=0.3.0",
 ]
 visualization = [
     "matplotlib>=3.8.0",
+]
+supabase = [
+    "supabase>=2.0.0",
+    "python-dotenv>=1.0.0",
 ]
 dev = [
     "pytest>=7.4.0",
@@ -62,7 +58,7 @@ dev = [
     "mypy>=1.7.0",
 ]
 all = [
-    "art-interp[server,labeling,visualization,dev]",
+    "art-interp[labeling,visualization,supabase,dev]",
 ]
 
 [project.urls]
@@ -74,10 +70,9 @@ Repository = "https://github.com/yourusername/art-interp"
 interp-extract = "interpretability.scripts.extract_features:main"
 interp-monosemanticity = "interpretability.scripts.compute_monosemanticity:main"
 interp-correlations = "interpretability.scripts.compute_correlations:main"
-interp-server = "server.main:run"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/interpretability", "server"]
+packages = ["src/interpretability"]
 
 [tool.ruff]
 line-length = 100

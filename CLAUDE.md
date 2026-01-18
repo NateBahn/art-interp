@@ -15,13 +15,10 @@ art-interp/
 │   ├── analysis/            # Monosemanticity scoring, correlations
 │   ├── storage/             # Protocol-based data access
 │   └── labeling/            # Gemini VLM labeling
-├── server/                  # FastAPI API server
-│   ├── main.py              # Entry point
-│   ├── config.py            # Configuration
-│   └── database/            # SQLAlchemy models
-├── web/                     # React frontend
+├── web/                     # React frontend (connects directly to Supabase)
 │   └── src/                 # TypeScript source
 ├── scripts/                 # Analysis pipeline scripts
+├── database/                # SQL schema for Supabase
 ├── data/                    # Sample data and outputs
 └── tests/                   # Test suite
 ```
@@ -39,12 +36,19 @@ make test
 make format
 make lint
 
-# Start API server
-uvicorn server.main:app --reload
-
 # Start web frontend
 cd web && npm run dev
 ```
+
+## Architecture
+
+The web frontend connects **directly to Supabase** - there is no backend server. Data flow:
+
+```
+Web Frontend (React) → Supabase JS Client → Supabase PostgreSQL
+```
+
+Python scripts also connect directly to Supabase for data population.
 
 ## Code Patterns
 
@@ -91,16 +95,12 @@ scorer = MonosemanticityScorer(embedding_provider)
 ### interpretability package (src/interpretability/)
 Core algorithms. Changes here affect everything. Test thoroughly.
 
-### server (server/)
-FastAPI endpoints. Uses its own database models (SAE features only).
-Database models: SAEFeature, SAEFeatureLabel, ArtworkTopFeatures
-
 ### web (web/)
-React/TypeScript frontend. Connects to server API.
+React/TypeScript frontend. Connects directly to Supabase.
 Run `npm run dev` to start development server.
 
 ### scripts (scripts/)
-Analysis pipeline. Run these to generate analysis outputs.
+Analysis pipeline. Run these to generate analysis outputs and populate Supabase.
 
 ## File Dependencies
 
@@ -108,7 +108,7 @@ Analysis pipeline. Run these to generate analysis outputs.
 |------|--------|
 | `src/interpretability/core/sae_extractor.py` | Core extraction - test thoroughly |
 | `src/interpretability/storage/protocols.py` | All data access goes through here |
-| `server/database/models.py` | Database schema |
+| `database/schema.sql` | Supabase database schema |
 
 ## Adding New Features
 
